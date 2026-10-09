@@ -25,12 +25,12 @@
     小说标题、作者、章节链接、正文内容、来源网址结构化数据
 5.步骤
     导入库，打开浏览器，输入URL，进入网站，搜索内容，进入书籍，进入章节，保存本地，保存数据库保存EXCEL
+
 """
 #1
 import os
 import random
 import time
-import pandas as pd
 from bs4 import BeautifulSoup
 from datetime import datetime
 from pymongo import MongoClient
@@ -41,7 +41,7 @@ from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 #2
-url=input()
+url=input("请输入网站")
 edge_options = Options()
 edge_options.add_argument('--start-maximized')
 edge_options.add_argument('--disable-gpu')
@@ -52,7 +52,7 @@ time.sleep(random.uniform(3.4,5.215))
 #3
 search=driver.find_element(By.XPATH,'//*[@id="read"]/div[2]/div[1]/div[2]/form/input[1]')
 search.clear()
-search.send_keys("阿刀")
+search.send_keys(input("请输入作者"))
 search.send_keys(Keys.ENTER)
 time.sleep(random.uniform(3.31,5.155))
 
@@ -97,6 +97,56 @@ for idx, item in enumerate(item_list):
 # 循环结束，打印全部收集到的链接
 print("\n全部url列表：")
 print(url_result)
+
+
+client = MongoClient("mongodb://127.0.0.1:27017/")
+db = client["xs_ad"]
+coll = db["jiejie"]
+
+
+for url in url_result:
+    driver.get(url)
+    time.sleep(random.uniform(3.4,5.215))
+    source=driver.page_source
+    soup = BeautifulSoup(source, "html.parser")
+    name=soup.find(id="title").text.strip()
+    author_name=soup.find(id="author").text.strip()
+    author=author_name.replace("作者：","")
+    print(author)
+    book_dir=os.path.join(f"{author}的小说",name)
+    os.makedirs(book_dir, exist_ok=True)
+    list_url=soup.find('div',id="list").find_all('a',href=True)
+    all_url=[]
+    for url in list_url:
+        head_url = "https://www.bqg880.xyz"
+        home_url = head_url + url.get("href").replace("/#", "")
+        all_url.append(home_url)
+
+    for url in all_url:
+        driver.get(url)
+        time.sleep(random.uniform(4.4,8.215))
+        page_source = driver.page_source
+        soup = BeautifulSoup(page_source, "html.parser")
+        title = soup.find(id="title").text.strip()
+        content_div = soup.find("div", id="chaptercontent")
+        if content_div:
+            content = content_div.get_text(strip=False)
+        else:
+            print("无文本")
+
+        file_path = os.path.join(book_dir, f"{title}.txt")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+            print(f"已经保存了{title}")
+        doc = {
+            "book_name": name,
+            "author": author,
+            "chapter_title": title,
+            "chapter_url": url,
+            "content": content,
+            "crawl_time": datetime.now()
+        }
+        coll.insert_one(doc)
 
 
 
