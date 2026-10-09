@@ -31,6 +31,7 @@
 import os
 import random
 import time
+from openpyxl import Workbook,load_workbook
 from bs4 import BeautifulSoup
 from datetime import datetime
 from pymongo import MongoClient
@@ -40,6 +41,32 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+
+
+
+
+
+
+
+
+def end_excel(row_data:list,file_name="ad_jj.xlsx"):
+    if os.path.exists(file_name):
+        wb=load_workbook(file_name)
+        ws=wb.active
+    else:
+        wb=Workbook()
+        ws=wb.active
+        ws.append(row_data)
+        wb.save(file_name)
+        wb.close()
+
+
+
+
+
+
+
 #2
 url=input("请输入网站")
 edge_options = Options()
@@ -147,6 +174,11 @@ for url in url_result:
             "crawl_time": datetime.now()
         }
         coll.insert_one(doc)
+        data=[f"文章{title}",f"URL{url}",f"作者{author}",f"内容{content}"]
+        end_excel(data)
+
+
+
 
 
 
