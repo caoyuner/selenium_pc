@@ -34,6 +34,7 @@ import time
 from openpyxl import Workbook,load_workbook
 from bs4 import BeautifulSoup
 from datetime import datetime
+
 from pymongo import MongoClient
 from selenium import webdriver
 from selenium.webdriver import Keys
@@ -50,16 +51,36 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 
-def end_excel(row_data:list,file_name="ad_jj.xlsx"):
+def save_to_excel(file_name: str, sheet_name: str, data_list: list):
+    """
+    :param file_name: excel文件名
+    :param sheet_name: 工作表名称
+    :param data_list: 待写入多行数据，格式 [[列1,列2,列3], [列1,列2,列3], ...]
+    """
+    # 判断文件是否存在
     if os.path.exists(file_name):
-        wb=load_workbook(file_name)
-        ws=wb.active
+        wb = load_workbook(file_name)
     else:
-        wb=Workbook()
-        ws=wb.active
+        from openpyxl import Workbook
+        wb = Workbook()
+
+    # 获取工作表，不存在则新建
+    if sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+    else:
+        ws = wb.active
+        ws.title = sheet_name
+        # 可选：写入表头
+        ws.append(["书名", "链接", "作者"])
+
+    # 批量追加多行
+    for row_data in data_list:
         ws.append(row_data)
-        wb.save(file_name)
-        wb.close()
+
+    # 实时保存
+    wb.save(file_name)
+    wb.close()
+    print(f"已保存 {len(data_list)} 条数据到Excel")
 
 
 
@@ -152,6 +173,8 @@ for url in url_result:
     for url in all_url:
         driver.get(url)
         time.sleep(random.uniform(4.4,8.215))
+
+
         page_source = driver.page_source
         soup = BeautifulSoup(page_source, "html.parser")
         title = soup.find(id="title").text.strip()
@@ -165,17 +188,21 @@ for url in url_result:
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
             print(f"已经保存了{title}")
-        doc = {
-            "book_name": name,
-            "author": author,
-            "chapter_title": title,
-            "chapter_url": url,
-            "content": content,
-            "crawl_time": datetime.now()
-        }
-        coll.insert_one(doc)
-        data=[f"文章{title}",f"URL{url}",f"作者{author}",f"内容{content}"]
-        end_excel(data)
+        # doc = {
+        #     "book_name": name,
+        #     "author": author,
+        #     "chapter_title": title,
+        #     "chapter_url": url,
+        #     "content": content,
+        #     "crawl_time": datetime.now()
+        # }
+        # coll.insert_one(doc)
+        # data=[f"文章{title}",f"URL{url}",f"作者{author}",f"内容{content}"]
+        # end_excel(data)
+        three_rows = [
+            [name, url, author],
+        ]
+        save_to_excel(f"{author}的.xlsx", "sheet1", three_rows)
 
 
 

@@ -98,5 +98,48 @@ for idx, item in enumerate(item_list):
 print("\n全部url列表：")
 print(url_result)
 
+from openpyxl import load_workbook
+import os
 
 
+def save_to_excel(file_name: str, sheet_name: str, data_list: list):
+    """
+    :param file_name: excel文件名
+    :param sheet_name: 工作表名称
+    :param data_list: 待写入多行数据，格式 [[列1,列2,列3], [列1,列2,列3], ...]
+    """
+    # 判断文件是否存在
+    if os.path.exists(file_name):
+        wb = load_workbook(file_name)
+    else:
+        from openpyxl import Workbook
+        wb = Workbook()
+
+    # 获取工作表，不存在则新建
+    if sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+    else:
+        ws = wb.active
+        ws.title = sheet_name
+        # 可选：写入表头
+        ws.append(["标题", "链接", "作者"])
+
+    # 批量追加多行
+    for row_data in data_list:
+        ws.append(row_data)
+
+    # 实时保存
+    wb.save(file_name)
+    wb.close()
+    print(f"已保存 {len(data_list)} 条数据到Excel")
+
+
+# ========== 测试代码 ==========
+if __name__ == "__main__":
+    # 模拟爬虫抓取到的三组数据，对应3行
+    three_rows = [
+        ["小说A", "https://xxx1.com", "作者1"],
+        ["小说B", "https://xxx2.com", "作者2"],
+        ["小说C", "https://xxx3.com", "作者3"]
+    ]
+    save_to_excel("spider_data.xlsx", "sheet1", three_rows)
